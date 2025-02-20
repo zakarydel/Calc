@@ -93,7 +93,7 @@ function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const { currentUser, logout } = useAuth();
 
-  // Load user data when component mounts
+  // Load user data when component mounts or when user changes
   useEffect(() => {
     async function loadUserData() {
       if (currentUser) {
@@ -134,16 +134,17 @@ function Dashboard() {
             budgets,
             investments,
             lastUpdated: new Date().toISOString(),
-          }, { merge: true });
+          });
         } catch (error) {
           console.error('Error saving user data:', error);
         }
       }
     };
 
+    // Use a debounce to prevent too many writes to Firebase
     const debounceTimer = setTimeout(saveUserData, 1000);
     return () => clearTimeout(debounceTimer);
-  }, [currentUser, assets, liabilities, expenses, budgets, investments, isLoading]);
+  }, [assets, liabilities, expenses, budgets, investments, currentUser, isLoading]);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
