@@ -109,6 +109,16 @@ function Dashboard() {
             setExpenses(data.expenses || []);
             setBudgets(data.budgets || []);
             setInvestments(data.investments || []);
+          } else {
+            // Initialize with empty arrays if no data exists
+            await setDoc(userDoc, {
+              assets: [],
+              liabilities: [],
+              expenses: [],
+              budgets: [],
+              investments: [],
+              lastUpdated: new Date().toISOString(),
+            });
           }
         } catch (error) {
           console.error('Error loading user data:', error);
@@ -123,9 +133,12 @@ function Dashboard() {
 
   // Save user data whenever it changes
   useEffect(() => {
+    let isMounted = true;
+
     const saveUserData = async () => {
       if (currentUser && !isLoading) {
         try {
+          console.log('Saving data to Firebase...'); // Debug log
           const userDoc = doc(db, 'users', currentUser.uid);
           await setDoc(userDoc, {
             assets,
@@ -135,6 +148,7 @@ function Dashboard() {
             investments,
             lastUpdated: new Date().toISOString(),
           });
+          console.log('Data saved successfully'); // Debug log
         } catch (error) {
           console.error('Error saving user data:', error);
         }
@@ -142,8 +156,16 @@ function Dashboard() {
     };
 
     // Use a debounce to prevent too many writes to Firebase
-    const debounceTimer = setTimeout(saveUserData, 1000);
-    return () => clearTimeout(debounceTimer);
+    const debounceTimer = setTimeout(() => {
+      if (isMounted) {
+        saveUserData();
+      }
+    }, 1000);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(debounceTimer);
+    };
   }, [assets, liabilities, expenses, budgets, investments, currentUser, isLoading]);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
@@ -206,9 +228,14 @@ function Dashboard() {
           <Typography variant="h2" component="h1">
             Financial Dashboard
           </Typography>
-          <Button variant="outlined" onClick={handleLogout}>
-            Logout
-          </Button>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Typography variant="caption" color="text.secondary">
+              v{APP_VERSION}
+            </Typography>
+            <Button variant="outlined" onClick={handleLogout}>
+              Logout
+            </Button>
+          </Box>
         </Box>
 
         <Typography variant="h6" color="text.secondary" align="center" paragraph>
