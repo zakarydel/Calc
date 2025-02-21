@@ -24,7 +24,7 @@ interface BudgetPlannerProps {
   calculateMonthlySpending: (category: string) => number;
 }
 
-const categories = [
+const defaultCategories = [
   'Food & Dining',
   'Transportation',
   'Housing',
@@ -39,23 +39,27 @@ const categories = [
 
 function BudgetPlanner({ budgets, setBudgets, calculateMonthlySpending }: BudgetPlannerProps) {
   const [category, setCategory] = useState('');
+  const [customCategory, setCustomCategory] = useState('');
   const [limit, setLimit] = useState('');
   const [period, setPeriod] = useState<'monthly' | 'yearly'>('monthly');
+  const [showCustomCategory, setShowCustomCategory] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!category || !limit) return;
+    if ((!category && !customCategory) || !limit) return;
 
     const newBudget: BudgetItem = {
-      category,
+      category: showCustomCategory ? customCategory : category,
       limit: parseFloat(limit),
       period,
     };
 
     setBudgets([...budgets, newBudget]);
     setCategory('');
+    setCustomCategory('');
     setLimit('');
     setPeriod('monthly');
+    setShowCustomCategory(false);
   };
 
   const handleDelete = (index: number) => {
@@ -74,6 +78,17 @@ function BudgetPlanner({ budgets, setBudgets, calculateMonthlySpending }: Budget
     return 'primary';
   };
 
+  const handleCategoryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value === 'custom') {
+      setShowCustomCategory(true);
+      setCategory('');
+    } else {
+      setShowCustomCategory(false);
+      setCategory(value);
+    }
+  };
+
   return (
     <Box>
       <Typography variant="h5" gutterBottom align="center">
@@ -82,47 +97,106 @@ function BudgetPlanner({ budgets, setBudgets, calculateMonthlySpending }: Budget
 
       <form onSubmit={handleSubmit}>
         <Grid container spacing={2}>
-          <Grid item xs={12} sm={4}>
-            <TextField
-              fullWidth
-              select
-              label="Category"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              required
-            >
-              {categories
-                .filter(cat => !budgets.some(budget => budget.category === cat))
-                .map((cat) => (
-                  <MenuItem key={cat} value={cat}>
-                    {cat}
-                  </MenuItem>
-                ))}
-            </TextField>
+          <Grid item xs={12} sm={showCustomCategory ? 12 : 4}>
+            {!showCustomCategory ? (
+              <TextField
+                fullWidth
+                select
+                label="Category"
+                value={category}
+                onChange={handleCategoryChange}
+                required={!showCustomCategory}
+              >
+                {defaultCategories
+                  .filter(cat => !budgets.some(budget => budget.category === cat))
+                  .map((cat) => (
+                    <MenuItem key={cat} value={cat}>
+                      {cat}
+                    </MenuItem>
+                  ))}
+                <MenuItem value="custom">+ Add Custom Category</MenuItem>
+              </TextField>
+            ) : (
+              <Grid container spacing={2}>
+                <Grid item xs={10}>
+                  <TextField
+                    fullWidth
+                    label="Custom Category"
+                    value={customCategory}
+                    onChange={(e) => setCustomCategory(e.target.value)}
+                    required={showCustomCategory}
+                  />
+                </Grid>
+                <Grid item xs={2}>
+                  <Button
+                    onClick={() => {
+                      setShowCustomCategory(false);
+                      setCustomCategory('');
+                    }}
+                    variant="outlined"
+                    fullWidth
+                    sx={{ height: '100%' }}
+                  >
+                    Back
+                  </Button>
+                </Grid>
+              </Grid>
+            )}
           </Grid>
-          <Grid item xs={12} sm={4}>
-            <TextField
-              fullWidth
-              label="Budget Limit"
-              type="number"
-              value={limit}
-              onChange={(e) => setLimit(e.target.value)}
-              required
-            />
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <TextField
-              fullWidth
-              select
-              label="Period"
-              value={period}
-              onChange={(e) => setPeriod(e.target.value as 'monthly' | 'yearly')}
-              required
-            >
-              <MenuItem value="monthly">Monthly</MenuItem>
-              <MenuItem value="yearly">Yearly</MenuItem>
-            </TextField>
-          </Grid>
+          {!showCustomCategory && (
+            <>
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  fullWidth
+                  label="Budget Limit"
+                  type="number"
+                  value={limit}
+                  onChange={(e) => setLimit(e.target.value)}
+                  required
+                />
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  fullWidth
+                  select
+                  label="Period"
+                  value={period}
+                  onChange={(e) => setPeriod(e.target.value as 'monthly' | 'yearly')}
+                  required
+                >
+                  <MenuItem value="monthly">Monthly</MenuItem>
+                  <MenuItem value="yearly">Yearly</MenuItem>
+                </TextField>
+              </Grid>
+            </>
+          )}
+          {showCustomCategory && (
+            <>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Budget Limit"
+                  type="number"
+                  value={limit}
+                  onChange={(e) => setLimit(e.target.value)}
+                  required
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  select
+                  label="Period"
+                  value={period}
+                  onChange={(e) => setPeriod(e.target.value as 'monthly' | 'yearly')}
+                  required
+                >
+                  <MenuItem value="monthly">Monthly</MenuItem>
+                  <MenuItem value="yearly">Yearly</MenuItem>
+                </TextField>
+              </Grid>
+            </>
+          )}
           <Grid item xs={12}>
             <Button type="submit" variant="contained" color="primary">
               Add Budget

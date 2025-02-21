@@ -23,7 +23,7 @@ interface SpendingTrackerProps {
   totalSpending: number;
 }
 
-const categories = [
+const defaultCategories = [
   'Food & Dining',
   'Transportation',
   'Housing',
@@ -40,25 +40,46 @@ function SpendingTracker({ expenses, setExpenses, totalSpending }: SpendingTrack
   const [expenseName, setExpenseName] = useState('');
   const [expenseAmount, setExpenseAmount] = useState('');
   const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split('T')[0]);
-  const [category, setCategory] = useState('Other');
+  const [category, setCategory] = useState('');
+  const [customCategory, setCustomCategory] = useState('');
+  const [showCustomCategory, setShowCustomCategory] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!expenseName || !expenseAmount || !expenseDate || !category) return;
+    if (!expenseName || !expenseAmount || !expenseDate || (!category && !customCategory)) return;
 
     const newExpense: SpendingItem = {
       name: expenseName,
       value: parseFloat(expenseAmount),
       date: expenseDate,
-      category: category,
+      category: showCustomCategory ? customCategory : category,
     };
 
     setExpenses([...expenses, newExpense]);
     setExpenseName('');
     setExpenseAmount('');
     setExpenseDate(new Date().toISOString().split('T')[0]);
-    setCategory('Other');
+    setCategory('');
+    setCustomCategory('');
+    setShowCustomCategory(false);
   };
+
+  const handleCategoryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value === 'custom') {
+      setShowCustomCategory(true);
+      setCategory('');
+    } else {
+      setShowCustomCategory(false);
+      setCategory(value);
+    }
+  };
+
+  // Get all unique categories from expenses
+  const allCategories = Array.from(new Set([
+    ...defaultCategories,
+    ...expenses.map(expense => expense.category)
+  ])).filter(cat => !defaultCategories.includes(cat));
 
   const handleDelete = (index: number) => {
     setExpenses(expenses.filter((_, i) => i !== index));
@@ -115,20 +136,53 @@ function SpendingTracker({ expenses, setExpenses, totalSpending }: SpendingTrack
             />
           </Grid>
           <Grid item xs={12} sm={3}>
-            <TextField
-              fullWidth
-              select
-              label="Category"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              required
-            >
-              {categories.map((cat) => (
-                <MenuItem key={cat} value={cat}>
-                  {cat}
-                </MenuItem>
-              ))}
-            </TextField>
+            {!showCustomCategory ? (
+              <TextField
+                fullWidth
+                select
+                label="Category"
+                value={category}
+                onChange={handleCategoryChange}
+                required={!showCustomCategory}
+              >
+                {defaultCategories.map((cat) => (
+                  <MenuItem key={cat} value={cat}>
+                    {cat}
+                  </MenuItem>
+                ))}
+                {allCategories.map((cat) => (
+                  <MenuItem key={cat} value={cat}>
+                    {cat}
+                  </MenuItem>
+                ))}
+                <MenuItem value="custom">+ Add Custom Category</MenuItem>
+              </TextField>
+            ) : (
+              <Grid container spacing={1}>
+                <Grid item xs={9}>
+                  <TextField
+                    fullWidth
+                    label="Custom Category"
+                    value={customCategory}
+                    onChange={(e) => setCustomCategory(e.target.value)}
+                    required={showCustomCategory}
+                  />
+                </Grid>
+                <Grid item xs={3}>
+                  <Button
+                    onClick={() => {
+                      setShowCustomCategory(false);
+                      setCustomCategory('');
+                    }}
+                    variant="outlined"
+                    fullWidth
+                    sx={{ height: '100%' }}
+                  >
+                    Back
+                  </Button>
+                </Grid>
+              </Grid>
+            )}
           </Grid>
           <Grid item xs={12}>
             <Button type="submit" variant="contained" color="primary">
